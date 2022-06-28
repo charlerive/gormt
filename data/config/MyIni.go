@@ -12,9 +12,10 @@ type Config struct {
 	CfgBase              `yaml:"base"`
 	DBInfo               DBInfo            `yaml:"db_info"`
 	OutDir               string            `yaml:"out_dir"`
-	URLTag               string            `yaml:"url_tag"`  // url tag
-	Language             string            `yaml:"language"` // language
-	DbTag                string            `yaml:"db_tag"`   // 数据库标签（gormt,db）
+	URLTag               string            `yaml:"url_tag"`         // url tag
+	Language             string            `yaml:"language"`        // language
+	DbTag                string            `yaml:"db_tag"`          // 数据库标签（gormt,db）
+	UserGormModel        bool              `yaml:"user_gorm_model"` //model是否使用gorm.Model
 	Simple               bool              `yaml:"simple"`
 	IsWEBTag             bool              `yaml:"is_web_tag"`
 	IsWebTagPkHidden     bool              `yaml:"is_web_tag_pk_hidden"` // web标记是否隐藏主键
@@ -24,13 +25,15 @@ type Config struct {
 	IsGUI                bool              `yaml:"is_gui"` //
 	IsTableName          bool              `yaml:"is_table_name"`
 	IsNullToPoint        bool              `yaml:"is_null_to_point"` // null to porint
-	TablePrefix          string            `yaml:"table_prefix"`     // 表前缀
+	IsNullToSqlNull      bool              `yaml:"is_null_to_sql_null"`
+	TablePrefix          string            `yaml:"table_prefix"` // 表前缀
 	SelfTypeDef          map[string]string `yaml:"self_type_define"`
 	OutFileName          string            `yaml:"out_file_name"`
 	WebTagType           int               `yaml:"web_tag_type"`              // 默认小驼峰
 	TableNames           string            `yaml:"table_names"`               // 表名（多个表名用","隔开）
 	IsColumnName         bool              `yaml:"is_column_name"`            //是否输出列名
 	IsOutFileByTableName bool              `yaml:"is_out_file_by_table_name"` //是否根据表名生成文件(多个表名生成多个文件)
+	IsOutPage            bool              `yaml:"is_out_page"`               // 是否输出分页支持
 }
 
 // DBInfo mysql database information. mysql 数据库信息
@@ -209,6 +212,11 @@ func SetDBTag(s string) {
 	_map.DbTag = s
 }
 
+// GetUserGormModel get `use gorm.Model or not`.
+func GetUserGormModel() bool {
+	return _map.UserGormModel
+}
+
 // SetIsNullToPoint if with null to porint in struct
 func SetIsNullToPoint(b bool) {
 	_map.IsNullToPoint = b
@@ -217,6 +225,14 @@ func SetIsNullToPoint(b bool) {
 // GetIsNullToPoint get if with null to porint in sturct
 func GetIsNullToPoint() bool {
 	return _map.IsNullToPoint
+}
+
+func SetIsNullToSqlNull(b bool) {
+	_map.IsNullToSqlNull = b
+}
+
+func GetIsNullToSqlNull() bool {
+	return _map.IsNullToSqlNull
 }
 
 // SetTablePrefix set table prefix
@@ -311,7 +327,7 @@ func GetIsOutFileByTableName() bool {
 	return _map.IsOutFileByTableName
 }
 
-//SetIsOutFileByTableName set gen ColumnName config. 设置是否根据表名生成文件
-func SetIsOutFileByTableName(isOutFileByTableName bool) {
-	_map.IsColumnName = isOutFileByTableName
+// GetIsOutPage  是否输出分页函数支持
+func GetIsOutPage() bool {
+	return _map.IsOutPage
 }

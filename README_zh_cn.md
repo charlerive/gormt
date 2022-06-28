@@ -123,6 +123,7 @@ Flags:
 - 支持外键相关属性 [简单带外键模式导出>>>](https://github.com/xxjwxc/gormt/tree/master/doc/export_cn.md)
 - 支持函数导出(包括:外键，关联体，索引关...)[简单函数导出示例>>>](https://github.com/xxjwxc/gormt/blob/master/data/view/genfunc/genfunc_test.go)
 - 支持默认值default 
+- model.Condition{} sql拼接
 
 ### 您可以在这里丰富数据映射类型 [def](data/view/cnf/def.go) 。
 
@@ -171,7 +172,7 @@ type UserAccountTbl struct {
 ## 6. 支持函数导出(导出函数只是 gorm 的辅助类函数，完全兼调用 gorm)
 
 ```
-// FetchByPrimaryKey primay or index 获取唯一内容
+// FetchByPrimaryKey primary or index 获取唯一内容
 func (obj *_UserAccountTblMgr) FetchByPrimaryKey(ID int) (result UserAccountTbl, err error) {
 	err = obj.DB.Table(obj.GetTableName()).Where("id = ?", ID).Find(&result).Error
 	if err == nil && obj.isRelated {
@@ -194,7 +195,10 @@ func (obj *_UserAccountTblMgr) FetchByPrimaryKey(ID int) (result UserAccountTbl,
 
 ### [函数调用示例>>>](https://github.com/xxjwxc/gormt/blob/master/data/view/genfunc/genfunc_test.go)
 
-## 7. 构建
+## 7. 分页展示 
+### [gormt中分页查询的使用](https://xiaojujiang.blog.csdn.net/article/details/122315454?spm=1001.2014.3001.5502)
+
+## 8. 构建
 ```
 make windows
 make linux
@@ -219,11 +223,6 @@ CHCP 65001
 - 比如`[@gorm default:'test';->;<-:create]这是注释内容` 表示默认值为'test',允许读，更新创建
 - 外键注释使用`[@fk tableName.columnName]这是注释内容` 表示关联到`tableName`的`columnName`列
 
-
-## 8. 下一步计划
-
-- 更新，删除功能函数添加
-- 优化
 
 ## 9. 提供一个windows 可视化工具
 

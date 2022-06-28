@@ -51,24 +51,36 @@ func Generate(info DBInfo) (out []GenOutInfo, m _Model) {
 	return
 }
 
+// getTableNameWithPrefix get table name with prefix
+func getTableNameWithPrefix(tableName string) string {
+	tablePrefix := config.GetTablePrefix()
+	if tablePrefix == "" {
+		return tableName
+	}
+
+	if strings.HasPrefix(tablePrefix, "-") {
+		trimPrefix := strings.TrimPrefix(tablePrefix, "-")
+		tableName = strings.TrimPrefix(tableName, trimPrefix)
+	} else {
+		tableName = tablePrefix + tableName
+	}
+
+	return tableName
+}
+
 // GetPackage gen struct on table
 func (m *_Model) GetPackage() genstruct.GenPackage {
 	if m.pkg == nil {
 		var pkg genstruct.GenPackage
 		pkg.SetPackage(m.info.PackageName) //package name
 
-		// tablePrefix := config.GetTablePrefix()
-
 		for _, tab := range m.info.TabList {
 			var sct genstruct.GenStruct
 
 			sct.SetTableName(tab.Name)
 
-			//如果设置了表前缀
-			// if tablePrefix != "" {
-			// 	tab.Name = strings.TrimLeft(tab.Name, tablePrefix)
-			// }
-
+			tab.Name = getTableNameWithPrefix(tab.Name)
+			fmt.Println(tab.Name)
 			sct.SetStructName(getCamelName(tab.Name)) // Big hump.大驼峰
 			sct.SetNotes(tab.Notes)
 			sct.AddElement(m.genTableElement(tab.Em)...) // build element.构造元素
@@ -88,11 +100,12 @@ func (m *_Model) GenerateByTableName() (out []GenOutInfo) {
 			var pkg genstruct.GenPackage
 			pkg.SetPackage(m.info.PackageName) //package name
 			var sct genstruct.GenStruct
+			sct.SetTableName(tab.Name)
+			tab.Name = getTableNameWithPrefix(tab.Name)
 			sct.SetStructName(getCamelName(tab.Name)) // Big hump.大驼峰
 			sct.SetNotes(tab.Notes)
 			sct.AddElement(m.genTableElement(tab.Em)...) // build element.构造元素
 			sct.SetCreatTableStr(tab.SQLBuildStr)
-			sct.SetTableName(tab.Name)
 			pkg.AddStruct(sct)
 			var stt GenOutInfo
 			stt.FileCtx = pkg.Generate()
@@ -123,40 +136,67 @@ func (m *_Model) genTableElement(cols []ColumnsInfo) (el []genstruct.GenElement)
 			tmp.SetName(getCamelName(v.Name))
 			tmp.SetNotes(v.Notes)
 			tmp.SetType(getTypeName(v.Type, v.IsNull))
-			// not simple output. 默认不输出gorm标签
-			if !config.GetSimple() {
-				for _, v1 := range v.Index {
-					switch v1.Key {
-					// case ColumnsKeyDefault:
-					case ColumnsKeyPrimary: // primary key.主键
-						tmp.AddTag(_tagGorm, "primaryKey")
-						isPK = true
-					case ColumnsKeyUnique: // unique key.唯一索引
-						tmp.AddTag(_tagGorm, "unique")
-					case ColumnsKeyIndex: // index key.复合索引
-						if v1.KeyType == "FULLTEXT" {
-							tmp.AddTag(_tagGorm, getUninStr("index", ":", v1.KeyName)+",class:FULLTEXT")
-						} else {
-							tmp.AddTag(_tagGorm, getUninStr("index", ":", v1.KeyName))
+			// 是否输出gorm标签
+			if len(_tagGorm) > 0 {
+				// not simple output. 默认只输出gorm主键和字段标签
+				if !config.GetSimple() {
+					for _, v1 := range v.Index {
+						switch v1.Key {
+						// case ColumnsKeyDefault:
+						case ColumnsKeyPrimary: // primary key.主键
+							tmp.AddTag(_tagGorm, "primaryKey")
+							isPK = true
+						case ColumnsKeyUnique: // unique key.唯一索引
+							tmp.AddTag(_tagGorm, "unique")
+						case ColumnsKeyIndex: // index key.复合索引
+							uninStr := getUninStr("index", ":", v1.KeyName)
+							// 兼容 gorm 本身 sort 标签
+							if v1.KeyName == "sort" {
+								uninStr = "index"
+							}
+							if v1.KeyType == "FULLTEXT" {
+								uninStr += ",class:FULLTEXT"
+							}
+							tmp.AddTag(_tagGorm, uninStr)
+						case ColumnsKeyUniqueIndex: // unique index key.唯一复合索引
+							tmp.AddTag(_tagGorm, getUninStr("uniqueIndex", ":", v1.KeyName))
 						}
-					case ColumnsKeyUniqueIndex: // unique index key.唯一复合索引
-						tmp.AddTag(_tagGorm, getUninStr("uniqueIndex", ":", v1.KeyName))
+					}
+				} else {
+					for _, v1 := range v.Index {
+						switch v1.Key {
+						// case ColumnsKeyDefault:
+						case ColumnsKeyPrimary: // primary key.主键
+							tmp.AddTag(_tagGorm, "primaryKey")
+							isPK = true
+						}
 					}
 				}
 			}
 		}
 
 		if len(v.Name) > 0 {
-			// not simple output
-			if !config.GetSimple() {
-				tmp.AddTag(_tagGorm, "column:"+v.Name)
-				tmp.AddTag(_tagGorm, "type:"+v.Type)
-				if !v.IsNull {
-					tmp.AddTag(_tagGorm, "not null")
-				}
-				// default tag
-				if len(v.Gormt) > 0 {
-					tmp.AddTag(_tagGorm, v.Gormt)
+			// 是否输出gorm标签
+			if len(_tagGorm) > 0 {
+				// not simple output
+				if !config.GetSimple() {
+					tmp.AddTag(_tagGorm, "column:"+v.Name)
+					tmp.AddTag(_tagGorm, "type:"+v.Type)
+					if !v.IsNull {
+						tmp.AddTag(_tagGorm, "not null")
+					} else if v.IsNull && !config.GetIsNullToPoint() {
+						// 当该字段默认值为null，并且结构不用指针类型时，添加default:null的tag
+						tmp.AddTag(_tagGorm, "default:null")
+					}
+					// default tag
+					if len(v.Gormt) > 0 {
+						tmp.AddTag(_tagGorm, v.Gormt)
+					}
+					if len(v.Notes) > 0 {
+						tmp.AddTag(_tagGorm, fmt.Sprintf("comment:'%v'", v.Notes))
+					}
+				} else {
+					tmp.AddTag(_tagGorm, "column:"+v.Name)
 				}
 			}
 
@@ -209,6 +249,7 @@ func (m *_Model) genForeignKey(col ColumnsInfo) (fklist []genstruct.GenElement) 
 
 			tmp.AddTag(_tagGorm, "joinForeignKey:"+col.Name) // association_foreignkey
 			tmp.AddTag(_tagGorm, "foreignKey:"+v.ColumnName)
+			tmp.AddTag(_tagGorm, "references:"+getCamelName(col.Name))
 
 			// json tag
 			if config.GetIsWEBTag() {
@@ -276,7 +317,7 @@ func (m *_Model) getColumnsKeyMulti(tableName, col string) (isMulti bool, isFind
 // ///////////////////////// func
 func (m *_Model) generateFunc() (genOut []GenOutInfo) {
 	// getn base
-	tmpl, err := template.New("gen_base").Parse(genfunc.GetGenBaseTemp())
+	tmpl, err := template.New("gen_base").Funcs(template.FuncMap{"GetVV": func() string { return "`%v`" }}).Parse(genfunc.GetGenBaseTemp())
 	if err != nil {
 		panic(err)
 	}
@@ -289,6 +330,22 @@ func (m *_Model) generateFunc() (genOut []GenOutInfo) {
 	//tools.WriteFile(outDir+"gen_router.go", []string{buf.String()}, true)
 	// -------end------
 
+	// gen page 分页查询的基础
+	if config.GetIsOutPage() {
+		genPage, err := template.New("gen_page").Parse(genfunc.GetGenPageTemp())
+		if err != nil {
+			panic(err)
+		}
+
+		var bufPage bytes.Buffer
+		genPage.Execute(&bufPage, m.info)
+		genOut = append(genOut, GenOutInfo{
+			FileName: "gen.page.go",
+			FileCtx:  bufPage.String(),
+		})
+	}
+	// -------end------
+
 	for _, tab := range m.info.TabList {
 		var pkg genstruct.GenPackage
 		pkg.SetPackage(m.info.PackageName) //package name
@@ -299,11 +356,9 @@ func (m *_Model) generateFunc() (genOut []GenOutInfo) {
 		// wxw 2021.2.26 17:17
 		var data funDef
 		data.TableName = tab.Name
-		// tablePrefix := config.GetTablePrefix()
-		// //如果设置了表前缀
-		// if tablePrefix != "" {
-		// 	tab.Name = strings.TrimLeft(tab.Name, tablePrefix)
-		// }
+		data.IsOutPage = config.GetIsOutPage() // 添加分页开关
+		tab.Name = getTableNameWithPrefix(tab.Name)
+
 		data.StructName = getCamelName(tab.Name)
 
 		var primary, unique, uniqueIndex, index []FList
@@ -372,9 +427,9 @@ func (m *_Model) generateFunc() (genOut []GenOutInfo) {
 			// ---------end--
 		}
 
-		data.Primay = append(data.Primay, primary...)
-		data.Primay = append(data.Primay, unique...)
-		data.Primay = append(data.Primay, uniqueIndex...)
+		data.Primary = append(data.Primary, primary...)
+		data.Primary = append(data.Primary, unique...)
+		data.Primary = append(data.Primary, uniqueIndex...)
 		data.Index = append(data.Index, index...)
 		tmpl, err := template.New("gen_logic").
 			Funcs(template.FuncMap{"GenPreloadList": GenPreloadList, "GenFListIndex": GenFListIndex, "CapLowercase": CapLowercase, "GetTablePrefixName": GetTablePrefixName}).

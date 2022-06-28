@@ -18,6 +18,8 @@ var TypeMysqlDicMp = map[string]string{
 	"int unsigned":        "uint",
 	"bigint":              "int64",
 	"bigint unsigned":     "uint64",
+	"mediumint":           "int32",
+	"mediumint unsigned":  "uint32",
 	"varchar":             "string",
 	"char":                "string",
 	"date":                "datatypes.Date",
@@ -44,6 +46,11 @@ var TypeMysqlDicMp = map[string]string{
 	"mediumblob":          "[]byte",
 	"longblob":            "[]byte",
 	"integer":             "int64",
+	"numeric":             "float64",
+	"smalldatetime":       "time.Time", //sqlserver
+	"nvarchar":            "string",
+	"real":                "float32",
+	"binary":              "[]byte",
 }
 
 // TypeMysqlMatchList Fuzzy Matching Types.模糊匹配类型
@@ -68,7 +75,8 @@ var TypeMysqlMatchList = []struct {
 	{`^(blob)[(]\d+[)]`, "[]byte"},
 	{`^(binary)[(]\d+[)]`, "[]byte"},
 	{`^(decimal)[(]\d+,\d+[)]`, "float64"},
-	{`^(mediumint)[(]\d+[)]`, "string"},
+	{`^(mediumint)[(]\d+[)]`, "int16"},
+	{`^(mediumint)[(]\d+[)] unsigned`, "uint16"},
 	{`^(double)[(]\d+,\d+[)]`, "float64"},
 	{`^(float)[(]\d+,\d+[)]`, "float64"},
 	{`^(datetime)[(]\d+[)]`, "time.Time"},
@@ -77,4 +85,5 @@ var TypeMysqlMatchList = []struct {
 	{`^(integer)[(]\d+[)]`, "int"},
 	{`^(timestamp)[(]\d+[)]`, "time.Time"},
 	{`^(geometry)[(]\d+[)]`, "[]byte"},
+	{`^(set)[(][\s\S]+[)]`, "string"},
 }

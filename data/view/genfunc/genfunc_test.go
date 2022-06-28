@@ -125,7 +125,7 @@ func TestFuncFetchBy(t *testing.T) {
 	accountMgr := model.AccountMgr(db)
 	accountMgr.SetIsRelated(true) // 打开预加载 (外键)
 
-	account, err := accountMgr.FetchByPrimaryKey(2) // primay key
+	account, err := accountMgr.FetchByPrimaryKey(2) // primary key
 	fmt.Println(err)
 	fmt.Println(account)
 
@@ -136,4 +136,26 @@ func TestFuncFetchBy(t *testing.T) {
 	accounts, err := accountMgr.FetchIndexByTp(2, 2)
 	fmt.Println(err)
 	fmt.Println(accounts)
+}
+
+// TestCondition 测试sql构建
+func TestCondition(t *testing.T) {
+	condition := model.Condition{}
+	condition.And(model.AccountColumns.AccountID, ">=", "1")
+	condition.And(model.AccountColumns.UserID, "in", []string{"1", "2", "3"})
+	condition.AndWithCondition(false, model.AccountColumns.AccountID, "in", []string{"5"})
+	condition.Or(model.AccountColumns.Type, "in", []string{"1", "2", "3"})
+
+	where, obj := condition.Get()
+	fmt.Println(where)
+	fmt.Println(obj...)
+
+	db := GetGorm("root:qwer@tcp(127.0.0.1:3306)/matrix?charset=utf8&parseTime=True&loc=Local&interpolateParams=True")
+	defer func() {
+		sqldb, _ := db.DB()
+		sqldb.Close()
+	}()
+
+	accountMgr := model.AccountMgr(db.Where(where, obj...))
+	accountMgr.Gets()
 }
