@@ -442,7 +442,7 @@ func (m *_Model) generateFunc() (genOut []GenOutInfo) {
 
 		pkg.AddFuncStr(buf.String())
 		genOut = append(genOut, GenOutInfo{
-			FileName: fmt.Sprintf(m.info.DbName+".gen.%v.go", tab.Name),
+			FileName: fmt.Sprintf("%v.go", tab.Name),
 			FileCtx:  pkg.Generate(),
 		})
 	}
