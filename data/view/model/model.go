@@ -186,7 +186,7 @@ func (m *_Model) genTableElement(cols []ColumnsInfo) (el []genstruct.GenElement)
 						tmp.AddTag(_tagGorm, "not null")
 					} else if v.IsNull && !config.GetIsNullToPoint() {
 						// 当该字段默认值为null，并且结构不用指针类型时，添加default:null的tag
-						tmp.AddTag(_tagGorm, "default:null")
+						// tmp.AddTag(_tagGorm, "default:null")
 					}
 					// default tag
 					if len(v.Gormt) > 0 {
